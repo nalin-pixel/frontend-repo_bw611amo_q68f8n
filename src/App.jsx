@@ -5,17 +5,36 @@ import CalendarMini from './components/CalendarMini';
 import ReminderPanel from './components/ReminderPanel';
 
 const defaultItems = [
-  { id: 'quran', name: 'Tilawah Al-Qur\'an', days: [false, false, false, false, false, false, false] },
-  { id: 'dzikr', name: 'Dzikir Pagi & Petang', days: [false, false, false, false, false, false, false] },
-  { id: 'shalat', name: 'Shalat Berjamaah', days: [false, false, false, false, false, false, false] },
-  { id: 'sedekah', name: 'Sedekah', days: [false, false, false, false, false, false, false] },
+  { id: 'shalat', name: 'Sholat berjamaah', days: [false, false, false, false, false, false] },
+  { id: 'tilawah', name: 'Tilawah 1 juz sepekan', days: [false, false, false, false, false, false] },
+  { id: 'shaum', name: 'Shaum Sunnah', days: [false, false, false, false, false, false] },
+  { id: 'almatsurat', name: 'Almatsurat', days: [false, false, false, false, false, false] },
+  { id: 'dhuha', name: 'Dhuha', days: [false, false, false, false, false, false] },
+  { id: 'tahajjud', name: 'Tahajjud', days: [false, false, false, false, false, false] },
 ];
+
+// We use 6 columns (Mon-Sat), with the Thursday column serving as the weekly checkpoint.
+const USED_DAY_COUNT = 6;
 
 function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [items, setItems] = useState(() => {
     const saved = localStorage.getItem('mutabaah_items');
-    return saved ? JSON.parse(saved) : defaultItems;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Normalize: ensure every item has at least 6 day slots
+        return parsed.map((it) => ({
+          ...it,
+          days: Array.isArray(it.days)
+            ? [...it.days.slice(0, USED_DAY_COUNT), ...Array(Math.max(0, USED_DAY_COUNT - it.days.length)).fill(false)]
+            : Array(USED_DAY_COUNT).fill(false),
+        }));
+      } catch (_) {
+        // fall through to defaults
+      }
+    }
+    return defaultItems;
   });
   const [reminders, setReminders] = useState(() => {
     const saved = localStorage.getItem('mutabaah_reminders');
@@ -39,8 +58,8 @@ function App() {
   };
 
   const progress = useMemo(() => {
-    const total = items.length * 7;
-    const done = items.reduce((acc, it) => acc + it.days.filter(Boolean).length, 0);
+    const total = items.length * USED_DAY_COUNT;
+    const done = items.reduce((acc, it) => acc + it.days.slice(0, USED_DAY_COUNT).filter(Boolean).length, 0);
     return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
   }, [items]);
 
